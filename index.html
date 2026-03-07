@@ -3,94 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mystery Time | Portal</title>
+    <title>Mystery Time | Live</title>
     <style>
-        :root {
-            --primary: #a855f7;
-            --bg: #0a0a0c;
-            --glass: rgba(168, 85, 247, 0.1);
-        }
-
+        :root { --primary: #a855f7; --bg: #0a0a0c; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body, html { 
-            height: 100%; overflow-x: hidden; 
-            background: var(--bg);
-            font-family: 'Segoe UI', Roboto, sans-serif; color: white; 
-        }
-        
+        body, html { height: 100%; overflow-x: hidden; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: white; }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
-        .main-wrapper { 
-            position: relative; z-index: 2; min-height: 100vh;
-            display: flex; align-items: center; justify-content: center; padding: 20px;
-        }
+        .main-wrapper { position: relative; z-index: 2; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
         
-        /* LIQUID GLASS PANEL */
         .glass-panel { 
-            background: var(--glass); 
-            backdrop-filter: blur(20px); 
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(168, 85, 247, 0.3); 
-            padding: 40px; 
-            border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            width: 100%; max-width: 600px;
-            text-align: center;
-            animation: morph 12s ease-in-out infinite;
+            background: rgba(168, 85, 247, 0.1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(168, 85, 247, 0.3); padding: 40px; border-radius: 50px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); width: 100%; max-width: 550px; text-align: center;
         }
 
-        @keyframes morph {
-            0%, 100% { border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%; }
-            50% { border-radius: 40% 60% 35% 65% / 55% 45% 55% 45%; }
-        }
-        
-        h1 { 
-            font-size: clamp(2rem, 8vw, 3.5rem); text-transform: uppercase; 
-            color: var(--primary); text-shadow: 0 0 20px rgba(168, 85, 247, 0.6); 
-        }
-        
-        .admin-tag { color: #888; font-size: 0.9rem; margin-bottom: 25px; letter-spacing: 2px; }
+        h1 { font-size: clamp(2rem, 8vw, 3rem); text-transform: uppercase; color: var(--primary); text-shadow: 0 0 20px rgba(168, 85, 247, 0.6); margin-bottom: 5px; }
+        .admin-tag { color: #888; font-size: 0.8rem; margin-bottom: 20px; letter-spacing: 2px; }
 
-        /* BUTTONS GRID */
-        .btn-grid { 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; 
-        }
-
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .btn { 
             background: rgba(168, 85, 247, 0.15); color: #fff; border: 1px solid var(--primary); 
-            padding: 12px; font-family: inherit; cursor: pointer; border-radius: 12px;
-            text-transform: uppercase; font-weight: bold; transition: 0.3s; font-size: 0.8rem;
+            padding: 12px; cursor: pointer; border-radius: 12px; text-transform: uppercase; 
+            font-weight: bold; transition: 0.3s; font-size: 0.75rem;
         }
-        
-        .btn:hover { background: var(--primary); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(168, 85, 247, 0.4); }
+        .btn:hover { background: var(--primary); transform: translateY(-2px); }
         .btn-full { grid-column: span 2; }
 
-        /* STATUS BOX */
-        .status-box { 
-            margin-top: 25px; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 20px;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+        /* --- АНИМАЦИЯ КУБИКА (TG STYLE) --- */
+        .dice-container { margin: 25px 0; perspective: 1000px; display: flex; justify-content: center; }
+        .cube {
+            width: 60px; height: 60px; position: relative; transform-style: preserve-3d;
+            transform: rotateX(-20deg) rotateY(-20deg); transition: transform 1.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
         }
+        .face {
+            position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ddd;
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: #333; box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        }
+        .front  { transform: translateZ(30px); }
+        .back   { transform: rotateY(180deg) translateZ(30px); }
+        .right  { transform: rotateY(90deg) translateZ(30px); }
+        .left   { transform: rotateY(-90deg) translateZ(30px); }
+        .top    { transform: rotateX(90deg) translateZ(30px); }
+        .bottom { transform: rotateX(-90deg) translateZ(30px); }
 
+        .dot { width: 10px; height: 10px; background: #333; border-radius: 50%; position: absolute; }
+        /* Точки для граней (упрощенно) */
+        .face-1 .dot { top: 25px; left: 25px; }
+        .face-6 .dot:nth-child(1) { top: 10px; left: 10px; }
+        .face-6 .dot:nth-child(2) { top: 10px; left: 40px; }
+        .face-6 .dot:nth-child(3) { top: 25px; left: 10px; }
+        .face-6 .dot:nth-child(4) { top: 25px; left: 40px; }
+        .face-6 .dot:nth-child(5) { top: 40px; left: 10px; }
+        .face-6 .dot:nth-child(6) { top: 40px; left: 40px; }
+
+        /* STATUS */
+        .status-box { margin-top: 20px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; }
         #status-dot { width: 10px; height: 10px; border-radius: 50%; }
         .online { background: #00ffaa; box-shadow: 0 0 10px #00ffaa; }
         .offline { background: #ff4444; box-shadow: 0 0 10px #ff4444; }
 
-        /* MODAL / OVERLAY */
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 10; display: none;
-            align-items: center; justify-content: center; backdrop-filter: blur(5px);
-        }
-        .modal {
-            background: #1a1a20; padding: 30px; border-radius: 20px; border: 1px solid var(--primary);
-            text-align: center; width: 90%; max-width: 400px;
-        }
-
-        /* DICE GAME */
-        #dice-result { font-size: 2rem; margin-top: 10px; color: var(--primary); }
-
-        @media (max-width: 480px) { .btn-grid { grid-template-columns: 1fr; } .btn-full { grid-column: span 1; } }
+        /* MODAL */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal { background: #1a1a20; padding: 30px; border-radius: 20px; border: 1px solid var(--primary); text-align: center; width: 90%; max-width: 400px; }
     </style>
 </head>
 <body>
@@ -105,86 +81,72 @@
             <div class="btn-grid">
                 <button class="btn btn-full" onclick="copyIP()" id="ip-btn">Копировать IP</button>
                 <button class="btn" onclick="toggleModal('admin-modal')">Админы</button>
-                <button class="btn" onclick="rollDice()">Бросить кубик 🎲</button>
+                <button class="btn" onclick="rollDice()">Кинуть кубик 🎲</button>
                 <button class="btn btn-full" onclick="checkServer()">Обновить статус 🔄</button>
+            </div>
+
+            <div class="dice-container">
+                <div class="cube" id="cube">
+                    <div class="face front face-1"><div class="dot"></div></div>
+                    <div class="face back face-6">
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    </div>
+                    <div class="face right">3</div>
+                    <div class="face left">4</div>
+                    <div class="face top">2</div>
+                    <div class="face bottom">5</div>
+                </div>
             </div>
 
             <div class="status-box">
                 <div id="status-dot" class="offline"></div>
-                <span id="status-text">ПРОВЕРКА...</span>
+                <span id="status-text">ЗАГРУЗКА...</span>
             </div>
-            
-            <div id="dice-result"></div>
         </div>
     </div>
 
     <div id="admin-modal" class="overlay" onclick="toggleModal('admin-modal')">
         <div class="modal" onclick="event.stopPropagation()">
-            <h2 style="color: var(--primary); margin-bottom: 20px;">Состав Администрации</h2>
-            <p style="margin-bottom: 10px;">👑 <b>Главный админ:</b> Smashh</p>
-            <p>🛡️ <b>Админ:</b> Oscolo4ek</p>
-            <br>
+            <h2 style="color: var(--primary); margin-bottom: 20px;">Администрация</h2>
+            <p style="margin-bottom: 10px;">👑 <b>Главный:</b> Smashh</p>
+            <p>🛡️ <b>Админ:</b> Oscolo4ek</p><br>
             <button class="btn" onclick="toggleModal('admin-modal')">Закрыть</button>
         </div>
     </div>
 
     <script>
-        // --- GRAPHICS ---
+        // --- BACKGROUND ---
         const canvas = document.getElementById('canvas-container');
         const ctx = canvas.getContext('2d');
         let w = canvas.width = window.innerWidth;
         let h = canvas.height = window.innerHeight;
         const particles = [];
-
         window.addEventListener('resize', () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; });
 
         class Particle {
-            constructor() {
-                this.x = Math.random() * w; this.y = Math.random() * h;
-                this.vx = (Math.random() - 0.5) * 0.6; this.vy = (Math.random() - 0.5) * 0.6;
-            }
-            update() {
-                this.x += this.vx; this.y += this.vy;
-                if (this.x < 0 || this.x > w) this.vx *= -1;
-                if (this.y < 0 || this.y > h) this.vy *= -1;
-            }
-            draw() {
-                ctx.beginPath(); ctx.arc(this.x, this.y, 1.5, 0, Math.PI * 2);
-                ctx.fillStyle = '#a855f7'; ctx.fill();
-            }
+            constructor() { this.x = Math.random()*w; this.y = Math.random()*h; this.vx = (Math.random()-0.5)*0.5; this.vy = (Math.random()-0.5)*0.5; }
+            update() { this.x+=this.vx; this.y+=this.vy; if(this.x<0||this.x>w)this.vx*=-1; if(this.y<0||this.y>h)this.vy*=-1; }
+            draw() { ctx.beginPath(); ctx.arc(this.x,this.y,1.2,0,Math.PI*2); ctx.fillStyle='#a855f7'; ctx.fill(); }
         }
-
-        for (let i = 0; i < 40; i++) particles.push(new Particle());
-
+        for(let i=0; i<40; i++) particles.push(new Particle());
         function animate() {
-            ctx.fillStyle = 'rgba(10, 10, 12, 0.2)';
-            ctx.fillRect(0, 0, w, h);
-            particles.forEach(p => {
-                p.update(); p.draw();
-                particles.forEach(p2 => {
-                    const d = Math.hypot(p.x - p2.x, p.y - p2.y);
-                    if (d < 120) {
-                        ctx.strokeStyle = `rgba(168, 85, 247, ${0.15 * (1 - d/120)})`;
-                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-                    }
-                });
-            });
+            ctx.fillStyle='rgba(10,10,12,0.2)'; ctx.fillRect(0,0,w,h);
+            particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
         animate();
 
-        // --- SERVER API ---
-        const serverIP = 'MysteryTimeServer.aternos.me';
+        // --- SERVER API С ПОРТОМ 44380 ---
+        const serverIP = 'MysteryTimeServer.aternos.me:44380';
 
         async function checkServer() {
             const dot = document.getElementById('status-dot');
             const text = document.getElementById('status-text');
-            text.innerText = "ПИНГУЮ...";
-
+            text.innerText = "ПРОВЕРЯЮ СТАТУС...";
             try {
                 const res = await fetch(`https://api.mcstatus.io/v2/status/java/${serverIP}`);
                 const data = await res.json();
-
                 if (data.online) {
                     dot.className = 'online';
                     text.innerHTML = `ОНЛАЙН: ${data.players.online} / ${data.players.max}`;
@@ -198,9 +160,16 @@
             }
         }
 
-        // --- UI FUNCTIONS ---
+        // --- DICE LOGIC ---
+        function rollDice() {
+            const cube = document.getElementById('cube');
+            const xRand = Math.floor(Math.random() * 4) * 90 + 720;
+            const yRand = Math.floor(Math.random() * 4) * 90 + 720;
+            cube.style.transform = `rotateX(${xRand}deg) rotateY(${yRand}deg)`;
+        }
+
         function copyIP() {
-            navigator.clipboard.writeText(serverIP).then(() => {
+            navigator.clipboard.writeText('MysteryTimeServer.aternos.me:44380').then(() => {
                 const btn = document.getElementById('ip-btn');
                 btn.innerText = 'IP СКОПИРОВАН!';
                 setTimeout(() => btn.innerText = 'Копировать IP', 2000);
@@ -210,14 +179,6 @@
         function toggleModal(id) {
             const m = document.getElementById(id);
             m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
-        }
-
-        function rollDice() {
-            const res = document.getElementById('dice-result');
-            const val = Math.floor(Math.random() * 6) + 1;
-            res.innerText = `🎲 ${val}`;
-            res.style.transform = "scale(1.2)";
-            setTimeout(() => res.style.transform = "scale(1)", 200);
         }
 
         checkServer();
