@@ -248,44 +248,36 @@
     function closeGame() { document.getElementById('game-overlay').style.display='none'; document.getElementById('game-frame').src=''; }
     function copyIP(){ navigator.clipboard.writeText("MysteryTimeServer.aternos.me:44380"); alert("IP скопирован!") }
 
-async function check() {
-
-    const t = document.getElementById('st-text');
-
-    try {
-
-        const r = await fetch(
-            `https://api.mcsrvstat.us/2/MysteryTimeServer.aternos.me:44380?nocache=${Date.now()}`
-        );
-
-        const d = await r.json();
-
-        if (d.online) {
-
-            const online = d.players?.online ?? 0;
-            const max = d.players?.max ?? 0;
-
-            t.innerText = `ONLINE (${online}/${max})`;
-            t.style.color = "#00ffaa";
-
-        } else {
-
-            t.innerText = "OFFLINE";
-            t.style.color = "#ff4444";
-
+    // --- ТВОЯ ОБНОВЛЕННАЯ ФУНКЦИЯ ---
+    async function check() {
+        const t = document.getElementById('st-text');
+        try {
+            const r = await fetch(
+                `https://api.mcsrvstat.us/2/MysteryTimeServer.aternos.me:44380?nocache=${Date.now()}`
+            );
+            const d = await r.json();
+            if (d.online) {
+                const online = d.players?.online ?? 0;
+                const max = d.players?.max ?? 0;
+                t.innerText = `ONLINE (${online}/${max})`;
+                t.style.color = "#00ffaa";
+            } else {
+                t.innerText = "OFFLINE";
+                t.style.color = "#ff4444";
+            }
+        } catch(e) {
+            t.innerText = "ERROR";
+            t.style.color = "#ffaa00";
         }
-
-    } catch(e) {
-
-        t.innerText = "ERROR";
-        t.style.color = "#ffaa00";
-
     }
 
-}
+    function manualRefresh() {
+        gsap.to("#refresh-icon", { rotation: "+=360", duration: 0.8, ease: "power2.inOut" });
+        check();
+    }
 
-check();
-setInterval(check, 20000);
+    check();
+    setInterval(check, 20000);
 </script>
 </body>
 </html>
