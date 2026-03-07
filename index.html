@@ -4,73 +4,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mystery Time</title>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
             --p: #b066ff;
-            --p-glow: rgba(176, 102, 255, 0.6);
+            --p-glow: rgba(176, 102, 255, .6);
             --bg: #030307;
-            --border: rgba(176, 102, 255, 0.4);
+            --border: rgba(176, 102, 255, .4);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: #fff; height: 100vh; overflow: hidden; font-family: 'Silkscreen', sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent }
+        body { background: var(--bg); color: #fff; height: 100vh; overflow: hidden; font-family: 'Silkscreen', sans-serif }
 
-        #bg-canvas { position: fixed; top: 0; left: 0; z-index: 1; }
+        #bg-canvas { position: fixed; top: 0; left: 0; z-index: 1 }
 
         .crystal {
             position: fixed; width: 120px; height: 120px; z-index: 5;
             filter: drop-shadow(0 0 25px var(--p-glow));
-            pointer-events: none; animation: crystal-float 5s ease-in-out infinite;
+            pointer-events: none;
+            animation: crystal-float 5s ease-in-out infinite;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23b066ff' d='M16 2l-6 10h12z'/%3E%3Cpath fill='%239145ff' d='M10 12l6 18 6-18z'/%3E%3Cpath fill='%23d4a1ff' d='M16 2l-3 10h6z'/%3E%3C/svg%3E");
-            background-size: contain; background-repeat: no-repeat;
+            background-size: contain; background-repeat: no-repeat
         }
-        .c-left { bottom: -10px; left: -10px; transform: rotate(15deg); }
-        .c-right { bottom: -10px; right: -10px; transform: rotate(-15deg) scaleX(-1); }
-
-        @keyframes crystal-float { 0%, 100% { transform: translateY(0) rotate(15deg); } 50% { transform: translateY(-20px) rotate(20deg); } }
+        .c-left { bottom: -10px; left: -10px; transform: rotate(15deg) }
+        .c-right { bottom: -10px; right: -10px; transform: rotate(-15deg) scaleX(-1) }
+        @keyframes crystal-float { 0%, 100% { transform: translateY(0) rotate(15deg) } 50% { transform: translateY(-20px) rotate(20deg) } }
 
         .glass-frame {
-            position: relative; z-index: 20; width: 94vw; max-width: 500px; height: 90vh;
-            margin: 5vh auto; background: linear-gradient(165deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.01) 100%);
+            position: relative; z-index: 20;
+            width: 94vw; max-width: 500px; height: 90vh;
+            margin: 5vh auto;
+            background: linear-gradient(165deg, rgba(255, 255, 255, .07)0%, rgba(255, 255, 255, .01)100%);
             backdrop-filter: blur(45px); -webkit-backdrop-filter: blur(45px);
             border: 1px solid var(--border); border-radius: 40px;
             display: flex; flex-direction: column; overflow: hidden;
-            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, .8)
         }
 
-        .header { padding: 25px 20px; text-align: center; position: relative; }
-        .header h1 { font-family: 'Press Start 2P', cursive; font-size: 1.2rem; text-shadow: 0 0 15px var(--p); }
+        .header { padding: 25px 20px; text-align: center }
+        .header h1 { font-family: 'Press Start 2P'; font-size: 1.2rem; text-shadow: 0 0 15px var(--p) }
 
         #splash {
-            display: inline-block; font-size: 0.55rem; color: var(--p); font-weight: bold;
+            display: inline-block; font-size: .55rem; color: var(--p); font-weight: bold;
             text-transform: uppercase; transform: rotate(-10deg); margin-top: 5px;
-            animation: splash-zoom 0.5s ease-in-out infinite alternate;
+            animation: splash-zoom .5s ease-in-out infinite alternate
         }
-        @keyframes splash-zoom { from { transform: scale(1) rotate(-10deg); } to { transform: scale(1.1) rotate(-10deg); } }
+        @keyframes splash-zoom { from { transform: scale(1) rotate(-10deg) } to { transform: scale(1.1) rotate(-10deg) } }
 
-        .nav { display: flex; padding: 10px; gap: 8px; background: rgba(0,0,0,0.2); }
-        .nav-tab { 
-            flex: 1; padding: 15px; border-radius: 18px; border: none; 
-            background: rgba(255,255,255,0.02); color: #555; 
-            font-family: 'Press Start 2P'; font-size: 0.5rem; cursor: pointer; transition: 0.3s;
+        .nav { display: flex; padding: 10px; gap: 8px; background: rgba(0, 0, 0, .2) }
+        .nav-tab {
+            flex: 1; padding: 15px; border-radius: 18px; border: none;
+            background: rgba(255, 255, 255, .02); color: #555;
+            font-family: 'Press Start 2P'; font-size: .5rem; cursor: pointer; transition: 0.3s;
         }
-        .nav-tab.active { background: var(--p); color: #fff; box-shadow: 0 0 15px var(--p-glow); }
+        .nav-tab.active { background: var(--p); color: #fff; box-shadow: 0 0 15px var(--p-glow) }
 
-        .content { flex: 1; overflow-y: auto; padding: 20px; display: none; }
-        .content.active { display: block; }
+        .content { flex: 1; overflow-y: auto; padding: 20px; display: none }
+        .content.active { display: block }
 
-        /* ИСПРАВЛЕННЫЙ БЛОК СТАТУСА С КНОПКОЙ ОБНОВЛЕНИЯ */
-        .status-box { 
-            background: rgba(0,0,0,0.4); border: 1px solid var(--border); 
-            border-radius: 25px; padding: 20px; text-align: center; 
-            margin-bottom: 15px; position: relative;
+        .status-box {
+            background: rgba(0, 0, 0, .4); border: 1px solid var(--border);
+            border-radius: 25px; padding: 20px; text-align: center; margin-bottom: 15px; position: relative;
         }
-        #st-text { font-size: 0.8rem; color: var(--p); font-weight: bold; }
-        
+        #st-text { font-size: .8rem; color: var(--p); font-weight: bold }
+
         .refresh-btn {
             position: absolute; right: 15px; top: 15px;
             width: 35px; height: 35px; border-radius: 50%;
@@ -79,12 +79,13 @@
             align-items: center; justify-content: center; font-size: 1rem;
             transition: 0.3s; z-index: 10;
         }
-        .refresh-btn:active { transform: scale(0.9); background: var(--p); color: #fff; }
 
-        .btn { 
-            display: block; width: 100%; padding: 18px; margin: 10px 0; border-radius: 20px; 
-            border: 1px solid var(--p); background: rgba(176, 102, 255, 0.05); color: #fff;
-            font-family: 'Silkscreen'; text-align: center; text-decoration: none; cursor: pointer; font-size: 0.8rem;
+        .btn {
+            display: block; width: 100%; padding: 18px; margin: 10px 0;
+            border-radius: 20px; border: 1px solid var(--p);
+            background: rgba(176, 102, 255, .05); color: #fff;
+            font-family: 'Silkscreen'; text-align: center;
+            text-decoration: none; cursor: pointer; font-size: .8rem
         }
 
         .staff-dropdown { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 20px; margin-top: 15px; overflow: hidden; }
@@ -116,7 +117,7 @@
 <div class="glass-frame">
     <div class="header">
         <h1>MYSTERY TIME</h1>
-        <div id="splash">! LOADING !</div>
+        <div id="splash">LOADING</div>
     </div>
 
     <div class="nav">
@@ -128,10 +129,10 @@
         <div class="status-box">
             <div class="refresh-btn" id="refresh-icon" onclick="manualRefresh()">↻</div>
             <div id="st-text">ОПРОС...</div>
-            <div id="st-info" style="font-size: 0.4rem; opacity: 0.5; margin-top: 5px;">MysteryTimeServer.aternos.me:44380</div>
+            <div style="font-size:.4rem;opacity:.5;margin-top:5px">MysteryTimeServer.aternos.me:44380</div>
         </div>
 
-        <button class="btn" onclick="copyIP()">📋 COPY Server IP (44380)</button>
+        <button class="btn" onclick="copyIP()">📋 COPY Server IP</button>
         <a href="https://www.mediafire.com/file/h3024nacqdfhl9b/sborka_1.21.4.mrpack/file" class="btn" style="border-color:#fff;">📦 MODPACK 1.21.4</a>
 
         <div class="staff-dropdown">
@@ -142,11 +143,11 @@
             <div id="staff-list">
                 <div class="staff-card">
                     <div style="font-size: 0.6rem;">Smashh <br><span style="font-size: 0.4rem; color: var(--p);">OWNER & DEV</span></div>
-                    <a href="https://t.me/xssmash" class="btn" style="width: auto; padding: 5px 10px; margin: 0; font-size: 0.4rem;">TG</a>
+                    <a href="https://t.me/xssmash" target="_blank" class="btn" style="width: auto; padding: 5px 10px; margin: 0; font-size: 0.4rem;">TG</a>
                 </div>
                 <div class="staff-card">
                     <div style="font-size: 0.6rem;">Oscolo4ek <br><span style="font-size: 0.4rem; color: var(--p);">DEV & STREAMER</span></div>
-                    <a href="https://t.me/wowoleg1" class="btn" style="width: auto; padding: 5px 10px; margin: 0; font-size: 0.4rem;">TG</a>
+                    <a href="https://t.me/wowoleg1" target="_blank" class="btn" style="width: auto; padding: 5px 10px; margin: 0; font-size: 0.4rem;">TG</a>
                 </div>
             </div>
         </div>
@@ -154,13 +155,13 @@
 
     <div class="content" id="t1">
         <div class="cat-row">
-            <button class="cat-btn active" id="cm" onclick="setCat('m')">MOBILE Games</button>
-            <button class="cat-btn" id="cp" onclick="setCat('p')">PC Games</button>
+            <button class="cat-btn active" id="cm" onclick="setCat('m')">MOBILE</button>
+            <button class="cat-btn" id="cp" onclick="setCat('p')">PC ONLY</button>
         </div>
         <div class="grid" id="grid"></div>
         <div id="loader">
             <div id="l-icon" style="font-size: 3rem;">📦</div>
-            <div id="l-name" style="font-size: 0.5rem; font-family:'Press Start 2P'; margin-top: 15px;">Распаковка файлов...</div>
+            <div id="l-name" style="font-size: 0.5rem; font-family:'Press Start 2P'; margin-top: 15px;">Распаковка...</div>
             <div class="bar-bg"><div id="l-fill" class="bar-fill"></div></div>
             <div id="l-stats" style="font-size: 0.5rem; opacity: 0.5;">0 / 0 MB</div>
         </div>
@@ -173,8 +174,8 @@
 </div>
 
 <script>
-    const splashes = ["1.21.4 Ready!", "Purple Power!", "DEV @xssmash!", "60 FPS Mesh!", "Mystery Time!"];
-    document.getElementById('splash').innerText = splashes[Math.floor(Math.random() * splashes.length)];
+    const splashes=["1.21.4 Ready!", "Purple Power!", "Aternos Server!", "Smashh DEV!", "60 FPS Mesh!", "Mystery Time!"];
+    document.getElementById("splash").innerText = splashes[Math.floor(Math.random()*splashes.length)];
 
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
@@ -201,9 +202,13 @@
     const gList = [
         { n: 'Voxiom', u: 'https://voxiom.io/', s: 15, i: '🔫', t: 'p' },
         { n: 'Krunker', u: 'https://krunker.io/', s: 20, i: '🎯', t: 'p' },
+        { n: 'ShellShock', u: 'https://shellshock.io/', s: 12, i: '🥚', t: 'p' },
         { n: 'Minecraft', u: 'https://classic.minecraft.net/', s: 18, i: '⛏️', t: 'p' },
         { n: 'Flappy', u: 'https://flappybird.io/', s: 2, i: '🐦', t: 'm' },
-        { n: '2048', u: 'https://play2048.co/', s: 1, i: '🔢', t: 'm' }
+        { n: '2048', u: 'https://play2048.co/', s: 1, i: '🔢', t: 'm' },
+        { n: 'Doodle', u: 'https://doodle-jump.io/', s: 5, i: '🐸', t: 'm' },
+        { n: 'Helix', u: 'https://games.poki.com/4/helix-jump/index.html', s: 8, i: '🌀', t: 'm' },
+        { n: 'Subway', u: 'https://games.poki.com/4/subway-surfers/index.html', s: 19, i: '🏃', t: 'm' }
     ];
 
     function setCat(c) {
@@ -234,41 +239,38 @@
         setTimeout(() => { loader.style.display='none'; document.getElementById('game-overlay').style.display='flex'; document.getElementById('game-frame').src=u; }, 400);
     }
 
+    function tab(i){
+        document.querySelectorAll(".nav-tab,.content").forEach(e=>e.classList.remove("active"))
+        document.querySelectorAll(".nav-tab")[i].classList.add("active")
+        document.getElementById("t"+i).classList.add("active")
+    }
     function toggleStaff() { const l = document.getElementById('staff-list'); l.style.display = l.style.display === 'block' ? 'none' : 'block'; }
-    function tab(i) { document.querySelectorAll('.nav-tab, .content').forEach(e => e.classList.remove('active')); document.querySelectorAll('.nav-tab')[i].classList.add('active'); document.getElementById('t'+i).classList.add('active'); }
     function closeGame() { document.getElementById('game-overlay').style.display='none'; document.getElementById('game-frame').src=''; }
-    function copyIP() { navigator.clipboard.writeText("MysteryTimeServer.aternos.me:44380"); alert("IP скопирован!"); }
+    function copyIP(){ navigator.clipboard.writeText("MysteryTimeServer.aternos.me:44380"); alert("IP скопирован!") }
 
-    // --- ПРОВЕРКА СЕРВЕРА С РУЧНЫМ ОБНОВЛЕНИЕМ ---
-    async function check() {
-        const t = document.getElementById('st-text');
-        const info = document.getElementById('st-info');
-        try {
-            const r = await fetch(`https://api.mcsrvstat.us/2/MysteryTimeServer.aternos.me:44380`);
-            const d = await r.json();
-            if (d.online) {
-                t.innerText = "ONLINE";
-                t.style.color = "#00ffaa";
-                info.innerText = `Players: ${d.players.online}/${d.players.max}`;
-            } else {
-                t.innerText = "OFFLINE";
-                t.style.color = "#ff4444";
-                info.innerText = "MysteryTimeServer.aternos.me:44380";
+    async function checkServer(){
+        const el=document.getElementById("st-text")
+        try{
+            const r=await fetch(`https://api.mcsrvstat.us/2/MysteryTimeServer.aternos.me:44380?nocache=${Date.now()}`)
+            const d=await r.json()
+            if(d.online){
+                el.innerText=`ONLINE (${d.players.online}/${d.players.max})`
+                el.style.color="#00ffaa"
+            }else{
+                el.innerText="OFFLINE"
+                el.style.color="#ff4444"
             }
-        } catch(e) {
-            t.innerText = "ERROR";
-            t.style.color = "#ffaa00";
+        }catch(e){
+            el.innerText="ERROR"
+            el.style.color="#ffaa00"
         }
     }
-
     function manualRefresh() {
-        // Анимация поворота иконки через GSAP
         gsap.to("#refresh-icon", { rotation: "+=360", duration: 0.8, ease: "power2.inOut" });
-        check();
+        checkServer();
     }
-
-    check();
-    setInterval(check, 20000);
+    checkServer();
+    setInterval(checkServer, 20000);
 </script>
 </body>
 </html>
