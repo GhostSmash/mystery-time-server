@@ -3,31 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mystery Time | Live Status</title>
+    <title>Mystery Time | Portal</title>
     <style>
+        :root {
+            --primary: #a855f7;
+            --bg: #0a0a0c;
+            --glass: rgba(168, 85, 247, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body, html { 
-            margin: 0; padding: 0; height: 100%; overflow: hidden; 
-            background: #0a0a0c;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; 
+            height: 100%; overflow-x: hidden; 
+            background: var(--bg);
+            font-family: 'Segoe UI', Roboto, sans-serif; color: white; 
         }
         
-        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
-        .ui-container { 
-            position: relative; z-index: 2; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; height: 100%; text-align: center; 
+        .main-wrapper { 
+            position: relative; z-index: 2; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
         }
         
+        /* LIQUID GLASS PANEL */
         .glass-panel { 
-            background: rgba(168, 85, 247, 0.1); 
-            backdrop-filter: blur(25px); 
-            -webkit-backdrop-filter: blur(25px);
+            background: var(--glass); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(168, 85, 247, 0.3); 
-            padding: 50px 40px; 
+            padding: 40px; 
             border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(168, 85, 247, 0.1);
-            max-width: 85%;
-            animation: morph 10s ease-in-out infinite;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            width: 100%; max-width: 600px;
+            text-align: center;
+            animation: morph 12s ease-in-out infinite;
         }
 
         @keyframes morph {
@@ -36,68 +46,102 @@
         }
         
         h1 { 
-            font-size: 2.8em; text-transform: uppercase; letter-spacing: 4px; margin: 0;
-            color: #a855f7;
-            text-shadow: 0 0 20px rgba(168, 85, 247, 0.6); 
+            font-size: clamp(2rem, 8vw, 3.5rem); text-transform: uppercase; 
+            color: var(--primary); text-shadow: 0 0 20px rgba(168, 85, 247, 0.6); 
         }
         
-        p { color: #888; margin-top: 10px; margin-bottom: 30px; font-size: 0.9em; letter-spacing: 2px; }
-        
+        .admin-tag { color: #888; font-size: 0.9rem; margin-bottom: 25px; letter-spacing: 2px; }
+
+        /* BUTTONS GRID */
+        .btn-grid { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; 
+        }
+
         .btn { 
-            background: rgba(168, 85, 247, 0.2); color: #fff; border: 1px solid #a855f7; 
-            padding: 15px 35px; font-family: inherit; cursor: pointer; border-radius: 50px;
-            text-transform: uppercase; font-weight: bold; transition: 0.3s;
+            background: rgba(168, 85, 247, 0.15); color: #fff; border: 1px solid var(--primary); 
+            padding: 12px; font-family: inherit; cursor: pointer; border-radius: 12px;
+            text-transform: uppercase; font-weight: bold; transition: 0.3s; font-size: 0.8rem;
         }
         
-        .btn:hover { background: #a855f7; box-shadow: 0 0 30px #a855f7; transform: translateY(-3px); }
+        .btn:hover { background: var(--primary); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(168, 85, 247, 0.4); }
+        .btn-full { grid-column: span 2; }
 
-        .status { 
-            margin-top: 30px; font-size: 1em; font-weight: bold; 
-            background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 30px;
-            display: inline-block;
+        /* STATUS BOX */
+        .status-box { 
+            margin-top: 25px; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 20px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
         }
 
-        #status-dot { margin-right: 8px; font-size: 1.2em; }
-        .online { color: #00ffaa; text-shadow: 0 0 10px #00ffaa; }
-        .offline { color: #ff4444; text-shadow: 0 0 10px #ff4444; }
+        #status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .online { background: #00ffaa; box-shadow: 0 0 10px #00ffaa; }
+        .offline { background: #ff4444; box-shadow: 0 0 10px #ff4444; }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        .pulse-animation { animation: pulse 2s infinite; }
+        /* MODAL / OVERLAY */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 10; display: none;
+            align-items: center; justify-content: center; backdrop-filter: blur(5px);
+        }
+        .modal {
+            background: #1a1a20; padding: 30px; border-radius: 20px; border: 1px solid var(--primary);
+            text-align: center; width: 90%; max-width: 400px;
+        }
+
+        /* DICE GAME */
+        #dice-result { font-size: 2rem; margin-top: 10px; color: var(--primary); }
+
+        @media (max-width: 480px) { .btn-grid { grid-template-columns: 1fr; } .btn-full { grid-column: span 1; } }
     </style>
 </head>
 <body>
 
     <canvas id="canvas-container"></canvas>
 
-    <div class="ui-container">
+    <div class="main-wrapper">
         <div class="glass-panel">
             <h1>Mystery Time</h1>
-            <p>ADMIN: <span style="color: #a855f7; font-weight: bold;">Smashh</span></p>
+            <div class="admin-tag">CREATED BY SMASHH</div>
             
-            <button class="btn" onclick="copyIP()" id="ip-btn">Copy IP</button>
-            
-            <div class="status" id="server-status">
-                <span id="status-dot" class="pulse-animation">●</span> 
-                <span id="status-text">PINGING SERVER...</span>
+            <div class="btn-grid">
+                <button class="btn btn-full" onclick="copyIP()" id="ip-btn">Копировать IP</button>
+                <button class="btn" onclick="toggleModal('admin-modal')">Админы</button>
+                <button class="btn" onclick="rollDice()">Бросить кубик 🎲</button>
+                <button class="btn btn-full" onclick="checkServer()">Обновить статус 🔄</button>
             </div>
+
+            <div class="status-box">
+                <div id="status-dot" class="offline"></div>
+                <span id="status-text">ПРОВЕРКА...</span>
+            </div>
+            
+            <div id="dice-result"></div>
+        </div>
+    </div>
+
+    <div id="admin-modal" class="overlay" onclick="toggleModal('admin-modal')">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h2 style="color: var(--primary); margin-bottom: 20px;">Состав Администрации</h2>
+            <p style="margin-bottom: 10px;">👑 <b>Главный админ:</b> Smashh</p>
+            <p>🛡️ <b>Админ:</b> Oscolo4ek</p>
+            <br>
+            <button class="btn" onclick="toggleModal('admin-modal')">Закрыть</button>
         </div>
     </div>
 
     <script>
-        // --- 1. ФОН ---
+        // --- GRAPHICS ---
         const canvas = document.getElementById('canvas-container');
         const ctx = canvas.getContext('2d');
         let w = canvas.width = window.innerWidth;
         let h = canvas.height = window.innerHeight;
         const particles = [];
+
         window.addEventListener('resize', () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; });
 
         class Particle {
             constructor() {
-                this.x = Math.random() * w;
-                this.y = Math.random() * h;
-                this.vx = (Math.random() - 0.5) * 0.8;
-                this.vy = (Math.random() - 0.5) * 0.8;
+                this.x = Math.random() * w; this.y = Math.random() * h;
+                this.vx = (Math.random() - 0.5) * 0.6; this.vy = (Math.random() - 0.5) * 0.6;
             }
             update() {
                 this.x += this.vx; this.y += this.vy;
@@ -105,73 +149,79 @@
                 if (this.y < 0 || this.y > h) this.vy *= -1;
             }
             draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 1.5, 0, Math.PI * 2);
-                ctx.fillStyle = '#a855f7';
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x, this.y, 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#a855f7'; ctx.fill();
             }
         }
 
-        for (let i = 0; i < 50; i++) particles.push(new Particle());
+        for (let i = 0; i < 40; i++) particles.push(new Particle());
 
         function animate() {
-            ctx.fillStyle = 'rgba(10, 10, 12, 0.15)';
+            ctx.fillStyle = 'rgba(10, 10, 12, 0.2)';
             ctx.fillRect(0, 0, w, h);
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
-                for (let j = i; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x;
-                    const dy = particles[i].y - particles[j].y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist < 150) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = `rgba(168, 85, 247, ${0.2 * (1 - dist/150)})`;
-                        ctx.lineWidth = 1;
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
+            particles.forEach(p => {
+                p.update(); p.draw();
+                particles.forEach(p2 => {
+                    const d = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (d < 120) {
+                        ctx.strokeStyle = `rgba(168, 85, 247, ${0.15 * (1 - d/120)})`;
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
                     }
-                }
-            }
+                });
+            });
             requestAnimationFrame(animate);
         }
         animate();
 
-        // --- 2. LIVE STATUS (IP: MysteryTimeServer.aternos.me) ---
+        // --- SERVER API ---
+        const serverIP = 'MysteryTimeServer.aternos.me';
+
         async function checkServer() {
             const dot = document.getElementById('status-dot');
             const text = document.getElementById('status-text');
-            const ip = 'MysteryTimeServer.aternos.me';
+            text.innerText = "ПИНГУЮ...";
 
             try {
-                // Пытаемся получить данные через mcapi.us (он стабильнее для Aternos)
-                const res = await fetch(`https://mcapi.us/server/status?ip=${ip}`);
+                const res = await fetch(`https://api.mcstatus.io/v2/status/java/${serverIP}`);
                 const data = await res.json();
 
                 if (data.online) {
-                    dot.className = 'online pulse-animation';
-                    text.innerHTML = `ONLINE: <span style="color:white">${data.players.now}</span> / ${data.players.max}`;
+                    dot.className = 'online';
+                    text.innerHTML = `ОНЛАЙН: ${data.players.online} / ${data.players.max}`;
                 } else {
                     dot.className = 'offline';
-                    text.innerText = 'SERVER OFFLINE';
+                    text.innerText = 'СЕРВЕР OFFLINE';
                 }
             } catch (e) {
                 dot.className = 'offline';
-                text.innerText = 'API DELAY...';
+                text.innerText = 'ОШИБКА API';
             }
         }
 
-        checkServer();
-        setInterval(checkServer, 30000);
-
+        // --- UI FUNCTIONS ---
         function copyIP() {
-            navigator.clipboard.writeText('MysteryTimeServer.aternos.me').then(() => {
+            navigator.clipboard.writeText(serverIP).then(() => {
                 const btn = document.getElementById('ip-btn');
-                btn.innerText = 'COPIED!';
-                setTimeout(() => { btn.innerText = 'Copy IP'; }, 2000);
+                btn.innerText = 'IP СКОПИРОВАН!';
+                setTimeout(() => btn.innerText = 'Копировать IP', 2000);
             });
         }
+
+        function toggleModal(id) {
+            const m = document.getElementById(id);
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function rollDice() {
+            const res = document.getElementById('dice-result');
+            const val = Math.floor(Math.random() * 6) + 1;
+            res.innerText = `🎲 ${val}`;
+            res.style.transform = "scale(1.2)";
+            setTimeout(() => res.style.transform = "scale(1)", 200);
+        }
+
+        checkServer();
+        setInterval(checkServer, 60000);
     </script>
 </body>
 </html>
