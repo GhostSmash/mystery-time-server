@@ -3,281 +3,660 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mystery Time</title>
+    <title>MYSTERY TIME | NEXT-GEN PANEL</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+      import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyC7YkZX6zhCzE4Z1Vo5_NT-_xgigZh4vr4",
+        authDomain: "mysterytimedb.firebaseapp.com",
+        projectId: "mysterytimedb",
+        storageBucket: "mysterytimedb.firebasestorage.app",
+        messagingSenderId: "284589854622",
+        appId: "1:284589854622:web:47898c35d32c48184a908f"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const auth = getAuth(app);
+      const googleProvider = new GoogleAuthProvider();
+
+      const ADMIN_PASS = "640082";
+      const ADMIN_NICKS = ["smashh"];
+
+      // --- AUTH LOGIC ---
+      window.startAuth = async () => {
+          const nick = document.getElementById('login-nick').value.trim();
+          const pass = document.getElementById('login-pass').value.trim();
+          if(!nick || !pass) return alert("Заполни поля!");
+          
+          const userRef = doc(db, "users", nick.toLowerCase());
+          const userSnap = await getDoc(userRef);
+          let isAdmin = ADMIN_NICKS.includes(nick.toLowerCase());
+
+          if (userSnap.exists()) {
+              if (userSnap.data().password !== pass) return alert("Пароль не тот!");
+          } else {
+              if (isAdmin && pass !== ADMIN_PASS) return alert("Админ-пароль неверный!");
+              await setDoc(userRef, { username: nick, password: pass, role: isAdmin ? "admin" : "player", avatar: null });
+          }
+          saveUser(nick, isAdmin, userSnap.exists() ? userSnap.data().avatar : null);
+      };
+
+      window.loginWithGoogle = async () => {
+          try {
+              const result = await signInWithPopup(auth, googleProvider);
+              const user = result.user;
+              saveUser(user.displayName, false, user.photoURL);
+          } catch (e) { console.error(e); }
+      };
+
+      function saveUser(nick, admin, av) {
+          localStorage.setItem('nick', nick);
+          localStorage.setItem('isAdmin', admin);
+          localStorage.setItem('avatar', av || '');
+          location.reload();
+      }
+
+      // --- NEWS LOGIC ---
+      window.dbSaveNews = async (text, img) => {
+          await addDoc(collection(db, "news"), { text, image: img, timestamp: serverTimestamp(), author: localStorage.getItem('nick') });
+      };
+
+      window.dbDeleteNews = async (id) => {
+          if(!confirm("Удалить новость навсегда?")) return;
+          await deleteDoc(doc(db, "news", id));
+          window.loadNewsUI();
+      };
+
+      window.dbGetNews = async () => {
+          const q = query(collection(db, "news"), orderBy("timestamp", "desc"));
+          const snap = await getDocs(q);
+          return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      };
+
+      // --- AVATAR LOGIC ---
+      window.updateAvatar = async (base64) => {
+          const nick = localStorage.getItem('nick').toLowerCase();
+          await updateDoc(doc(db, "users", nick), { avatar: base64 });
+          localStorage.setItem('avatar', base64);
+          location.reload();
+      };
+
+      window.initApp = async () => {
+          if (localStorage.getItem('nick')) {
+              document.getElementById('login-screen').style.display = 'none';
+              document.getElementById('main-ui').style.display = 'flex';
+              document.getElementById('menu-user-nick').innerText = localStorage.getItem('nick');
+              const av = localStorage.getItem('avatar');
+              if(av) document.getElementById('user-av-img').src = av;
+              if(localStorage.getItem('isAdmin') === 'true') document.getElementById('add-news-btn').style.display = 'flex';
+              window.checkServerStatus();
+              await window.loadNewsUI();
+          } else {
+              document.getElementById('login-screen').style.display = 'flex';
+          }
+      };
+      initApp();
+    </script>
 
     <style>
         :root {
             --p: #b066ff;
-            --p-glow: rgba(176, 102, 255, .6);
-            --bg: #030307;
-            --border: rgba(176, 102, 255, .4);
+            --p-glow: rgba(176, 102, 255, 0.6);
+            --bg: #050508;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(176, 102, 255, 0.3);
+            --accent: #00f2ff;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent }
-        body { background: var(--bg); color: #fff; height: 100vh; overflow: hidden; font-family: 'Silkscreen', sans-serif }
-
-        #bg-canvas { position: fixed; top: 0; left: 0; z-index: 1 }
-
-        .crystal {
-            position: fixed; width: 120px; height: 120px; z-index: 5;
-            filter: drop-shadow(0 0 25px var(--p-glow));
-            pointer-events: none;
-            animation: crystal-float 5s ease-in-out infinite;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23b066ff' d='M16 2l-6 10h12z'/%3E%3Cpath fill='%239145ff' d='M10 12l6 18 6-18z'/%3E%3Cpath fill='%23d4a1ff' d='M16 2l-3 10h6z'/%3E%3C/svg%3E");
-            background-size: contain; background-repeat: no-repeat
-        }
-        .c-left { bottom: -10px; left: -10px; transform: rotate(15deg) }
-        .c-right { bottom: -10px; right: -10px; transform: rotate(-15deg) scaleX(-1) }
-        @keyframes crystal-float { 0%, 100% { transform: translateY(0) rotate(15deg) } 50% { transform: translateY(-20px) rotate(20deg) } }
-
-        .glass-frame {
-            position: relative; z-index: 20;
-            width: 94vw; max-width: 500px; height: 90vh;
-            margin: 5vh auto;
-            background: linear-gradient(165deg, rgba(255, 255, 255, .07)0%, rgba(255, 255, 255, .01)100%);
-            backdrop-filter: blur(45px); -webkit-backdrop-filter: blur(45px);
-            border: 1px solid var(--border); border-radius: 40px;
-            display: flex; flex-direction: column; overflow: hidden;
-            box-shadow: 0 40px 80px rgba(0, 0, 0, .8)
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { 
+            background: var(--bg); 
+            color: #fff; 
+            font-family: 'Silkscreen', sans-serif; 
+            overflow: hidden; 
+            height: 100vh;
+            background-image: radial-gradient(circle at 50% 50%, #1a0b2e 0%, #050508 100%);
         }
 
-        .header { padding: 25px 20px; text-align: center }
-        .header h1 { font-family: 'Press Start 2P'; font-size: 1.2rem; text-shadow: 0 0 15px var(--p) }
+        canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
 
-        #splash {
-            display: inline-block; font-size: .55rem; color: var(--p); font-weight: bold;
-            text-transform: uppercase; transform: rotate(-10deg); margin-top: 5px;
-            animation: splash-zoom .5s ease-in-out infinite alternate
-        }
-        @keyframes splash-zoom { from { transform: scale(1) rotate(-10deg) } to { transform: scale(1.1) rotate(-10deg) } }
-
-        .nav { display: flex; padding: 10px; gap: 8px; background: rgba(0, 0, 0, .2) }
-        .nav-tab {
-            flex: 1; padding: 15px; border-radius: 18px; border: none;
-            background: rgba(255, 255, 255, .02); color: #555;
-            font-family: 'Press Start 2P'; font-size: .5rem; cursor: pointer; transition: 0.3s;
-        }
-        .nav-tab.active { background: var(--p); color: #fff; box-shadow: 0 0 15px var(--p-glow) }
-
-        .content { flex: 1; overflow-y: auto; padding: 20px; display: none }
-        .content.active { display: block }
-
-        .status-box {
-            background: rgba(0, 0, 0, .4); border: 1px solid var(--border);
-            border-radius: 25px; padding: 20px; text-align: center; margin-bottom: 15px; position: relative;
-        }
-        #st-text { font-size: .8rem; color: var(--p); font-weight: bold }
-
-        .refresh-btn {
-            position: absolute; right: 15px; top: 15px;
-            width: 35px; height: 35px; border-radius: 50%;
-            background: rgba(176, 102, 255, 0.1); border: 1px solid var(--border);
-            color: var(--p); cursor: pointer; display: flex;
-            align-items: center; justify-content: center; font-size: 1rem;
-            transition: 0.3s; z-index: 10;
+        /* --- UI ELEMENTS --- */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 15px rgba(176, 102, 255, 0.05);
         }
 
+        .header {
+            z-index: 50;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.4);
+        }
+
+        .oval-logo {
+            background: rgba(176, 102, 255, 0.1);
+            border: 1px solid var(--p);
+            padding: 8px 20px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 0 15px var(--p-glow);
+        }
+
+        .burger-btn {
+            cursor: pointer;
+            width: 35px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .burger-btn span {
+            display: block;
+            width: 100%;
+            height: 3px;
+            background: var(--p);
+            border-radius: 5px;
+            transition: 0.3s;
+            box-shadow: 0 0 5px var(--p);
+        }
+
+        /* --- SIDE MENU --- */
+        .side-menu {
+            position: fixed;
+            top: 0; left: -105%;
+            width: 300px; height: 100%;
+            z-index: 1000;
+            transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 50px 25px;
+            background: linear-gradient(160deg, rgba(15, 5, 25, 0.98), rgba(0,0,0,0.95));
+            border-right: 1px solid var(--p);
+            box-shadow: 20px 0 60px rgba(0,0,0,0.9);
+        }
+        .side-menu.open { left: 0; }
+        
+        .profile-section {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        .avatar-wrapper {
+            width: 90px; height: 90px;
+            margin: 0 auto 15px;
+            border-radius: 50%;
+            border: 2px solid var(--p);
+            padding: 5px;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            box-shadow: 0 0 20px var(--p-glow);
+        }
+        .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .avatar-wrapper:hover::after {
+            content: "EDIT";
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: flex; align-items: center;
+            justify-content: center; font-size: 0.5rem;
+        }
+
+        .menu-nav .item {
+            padding: 18px;
+            margin-bottom: 10px;
+            border-radius: 15px;
+            font-family: 'Press Start 2P';
+            font-size: 0.55rem;
+            color: #ccc;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .menu-nav .item:hover {
+            background: rgba(176, 102, 255, 0.15);
+            color: #fff;
+            transform: translateX(10px);
+            box-shadow: -5px 0 15px var(--p-glow);
+        }
+        .menu-nav .item i { color: var(--p); font-size: 1rem; }
+
+        /* --- MAIN FRAME --- */
+        .main-frame {
+            position: relative;
+            z-index: 10;
+            width: 94vw;
+            max-width: 550px;
+            height: 80vh;
+            margin: 4vh auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            display: none;
+        }
+        .content-area::-webkit-scrollbar { display: none; }
+        .content-area.active { display: block; animation: fadeIn 0.4s ease; }
+
+        /* --- HUB & STATUS --- */
+        .status-card {
+            padding: 20px;
+            margin-bottom: 25px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 25px;
+            border: 1px solid rgba(255,255,255,0.05);
+            position: relative;
+        }
+        .status-header { display: flex; justify-content: space-between; align-items: center; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .online { background: #00ffaa; box-shadow: 0 0 10px #00ffaa; }
+        .offline { background: #ff4444; box-shadow: 0 0 10px #ff4444; }
+
+        .more-info-btn { 
+            cursor: pointer; padding: 5px 10px; border-radius: 10px; 
+            transition: 0.3s; color: var(--p);
+        }
+        .more-info-btn:hover { background: rgba(176,102,255,0.1); }
+
+        .info-dropdown {
+            max-height: 0; overflow: hidden; transition: 0.5s ease;
+            font-size: 0.55rem; color: #aaa; margin-top: 10px;
+            background: rgba(0,0,0,0.3); border-radius: 15px;
+        }
+        .info-dropdown.open { max-height: 200px; padding: 15px; border: 1px solid var(--border); }
+
+        /* --- BUTTONS --- */
         .btn {
-            display: block; width: 100%; padding: 18px; margin: 10px 0;
-            border-radius: 20px; border: 1px solid var(--p);
-            background: rgba(176, 102, 255, .05); color: #fff;
-            font-family: 'Silkscreen'; text-align: center;
-            text-decoration: none; cursor: pointer; font-size: .8rem
+            width: 100%;
+            padding: 18px;
+            margin: 10px 0;
+            border-radius: 20px;
+            border: 1px solid var(--p);
+            background: rgba(176, 102, 255, 0.08);
+            color: #fff;
+            font-family: 'Silkscreen';
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:hover { background: rgba(176, 102, 255, 0.2); box-shadow: 0 0 20px var(--p-glow); transform: translateY(-2px); }
+        .btn::after {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg); transition: 0.5s;
+        }
+        .btn:hover::after { left: 100%; }
+
+        .btn-google { background: #fff; color: #000; border: none; font-weight: bold; margin-top: 20px; }
+
+        /* --- NEWS --- */
+        .news-card {
+            background: rgba(0,0,0,0.4);
+            border-radius: 25px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(176,102,255,0.1);
+            position: relative;
+            animation: slideUp 0.5s ease;
+        }
+        .news-author { font-size: 0.5rem; color: var(--p); margin-bottom: 8px; font-family: 'Press Start 2P'; }
+        .news-img { width: 100%; border-radius: 15px; margin-top: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        .del-news { 
+            position: absolute; top: 15px; right: 15px; color: #ff4444; 
+            cursor: pointer; opacity: 0.6; transition: 0.3s; font-size: 1.1rem;
+        }
+        .del-news:hover { opacity: 1; transform: scale(1.2); }
+
+        /* --- GAMES CATEGORIES --- */
+        .cat-title { font-size: 0.6rem; color: var(--accent); margin: 20px 0 10px; font-family: 'Press Start 2P'; text-transform: uppercase; }
+
+        /* --- MODALS --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center;
+            padding: 20px; backdrop-filter: blur(10px);
+        }
+        .modal-box {
+            width: 100%; max-width: 450px;
+            background: #0a0a0f; border: 1px solid var(--p); border-radius: 35px;
+            padding: 35px; position: relative;
+            box-shadow: 0 0 50px var(--p-glow);
+        }
+        input, textarea {
+            width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            padding: 15px; color: #fff; border-radius: 15px; margin-bottom: 15px; outline: none;
+            font-family: sans-serif;
+        }
+        input:focus { border-color: var(--p); box-shadow: 0 0 10px var(--p-glow); }
+
+        #add-news-btn {
+            position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px;
+            border-radius: 50%; background: var(--p); color: #fff; display: none;
+            align-items: center; justify-content: center; font-size: 1.8rem;
+            z-index: 500; cursor: pointer; border: none; box-shadow: 0 0 30px var(--p);
         }
 
-        .staff-dropdown { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 20px; margin-top: 15px; overflow: hidden; }
-        .staff-header { padding: 15px; cursor: pointer; display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--p); }
-        #staff-list { display: none; padding: 10px; border-top: 1px solid rgba(176, 102, 255, 0.2); }
-        .staff-card { padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-
-        .cat-row { display: flex; gap: 5px; margin-bottom: 15px; }
-        .cat-btn { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--p); background: none; color: #fff; font-family: 'Press Start 2P'; font-size: 0.4rem; }
-        .cat-btn.active { background: var(--p); }
-
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .node { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; padding: 20px; text-align: center; cursor: pointer; }
-
-        #loader { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3,3,7,0.98); z-index: 100; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
-        .bar-bg { width: 100%; height: 8px; background: #111; border-radius: 10px; margin: 20px 0; overflow: hidden; }
-        .bar-fill { height: 100%; width: 0%; background: var(--p); }
-
-        #game-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; display: none; flex-direction: column; }
-        iframe { flex: 1; border: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<canvas id="bg-canvas"></canvas>
-<div class="crystal c-left"></div>
-<div class="crystal c-right"></div>
+<canvas id="bgCanvas"></canvas>
 
-<div class="glass-frame">
-    <div class="header">
-        <h1>MYSTERY TIME</h1>
-        <div id="splash">LOADING</div>
+<div class="side-menu" id="side-menu">
+    <div class="profile-section">
+        <div class="avatar-wrapper" onclick="document.getElementById('av-input').click()">
+            <img src="https://via.placeholder.com/150" id="user-av-img" alt="AV">
+            <input type="file" id="av-input" hidden accept="image/*" onchange="handleAvUpload(event)">
+        </div>
+        <p id="menu-user-nick" style="font-family:'Orbitron'; font-weight:900; letter-spacing:2px; color:var(--p);">GUEST</p>
     </div>
 
-    <div class="nav">
-        <button class="nav-tab active" onclick="tab(0)">HUB</button>
-        <button class="nav-tab" onclick="tab(1)">GAMES</button>
-    </div>
-
-    <div class="content active" id="t0">
-        <div class="status-box">
-            <div class="refresh-btn" id="refresh-icon" onclick="manualRefresh()">↻</div>
-            <div id="st-text">ОПРОС...</div>
-            <div style="font-size:.4rem;opacity:.5;margin-top:5px">MysteryTimeServer.aternos.me:44380</div>
-        </div>
-
-        <button class="btn" onclick="copyIP()">📋 COPY Server IP</button>
-        <a href="https://www.mediafire.com/file/h3024nacqdfhl9b/sborka_1.21.4.mrpack/file" class="btn" style="border-color:#fff;">📦 MODPACK 1.21.4</a>
-
-        <div class="staff-dropdown">
-            <div class="staff-header" onclick="toggleStaff()">
-                <span>STAFF TEAM</span>
-                <span>▼</span>
-            </div>
-            <div id="staff-list">
-                <div class="staff-card">
-                    <div style="font-size: 0.6rem;">Smashh <br><span style="font-size: 0.4rem; color: var(--p);">OWNER & DEV</span></div>
-                    <a href="https://t.me/xssmash" target="_blank" class="btn" style="width: auto; padding: 5px 10px; margin: 0; font-size: 0.4rem;">TG</a>
-                </div>
-                <div class="staff-card">
-                    <div style="font-size: 0.6rem;">Oscolo4ek <br><span style="font-size: 0.4rem; color: var(--p);">DEV & STREAMER</span></div>
-                    <a href="https://t.me/wowoleg1" target="_blank" class="btn" style="width: auto; padding: 5px 10px; margin: 0; font-size: 0.4rem;">TG</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="content" id="t1">
-        <div class="cat-row">
-            <button class="cat-btn active" id="cm" onclick="setCat('m')">MOBILE</button>
-            <button class="cat-btn" id="cp" onclick="setCat('p')">PC ONLY</button>
-        </div>
-        <div class="grid" id="grid"></div>
-        <div id="loader">
-            <div id="l-icon" style="font-size: 3rem;">📦</div>
-            <div id="l-name" style="font-size: 0.5rem; font-family:'Press Start 2P'; margin-top: 15px;">Распаковка...</div>
-            <div class="bar-bg"><div id="l-fill" class="bar-fill"></div></div>
-            <div id="l-stats" style="font-size: 0.5rem; opacity: 0.5;">0 / 0 MB</div>
-        </div>
+    <div class="menu-nav">
+        <div class="item" onclick="tab(0)"><i class="fa-solid fa-house"></i> HUB</div>
+        <div class="item" onclick="tab(1)"><i class="fa-solid fa-newspaper"></i> NEWS</div>
+        <div class="item" onclick="tab(2)"><i class="fa-solid fa-gamepad"></i> GAMES</div>
+        <div class="item" onclick="tab(3)"><i class="fa-solid fa-users"></i> STAFF</div>
+        <div class="item" onclick="logout()" style="color:#ff4444; margin-top:50px;"><i class="fa-solid fa-right-from-bracket"></i> LOGOUT</div>
     </div>
 </div>
 
-<div id="game-overlay">
-    <button onclick="closeGame()" style="padding: 15px; background: var(--p); border: none; color: #fff; font-family: 'Press Start 2P'; font-size: 0.6rem;">EXIT [X]</button>
-    <iframe id="game-frame"></iframe>
+<div class="header">
+    <div class="oval-logo">
+        <h1 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#fff;">MYSTERY TIME</h1>
+    </div>
+    <div class="burger-btn" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+    </div>
+</div>
+
+<div class="main-frame glass-panel">
+    
+    <div id="login-screen" style="display:none; flex-direction:column; padding:40px; justify-content:center; height:100%;">
+        <h2 style="font-family:'Press Start 2P'; font-size:0.8rem; color:var(--p); margin-bottom:40px; text-align:center;">SYSTEM ACCESS</h2>
+        <input type="text" id="login-nick" placeholder="Username">
+        <input type="password" id="login-pass" placeholder="Password">
+        <button class="btn" onclick="startAuth()">LOGIN</button>
+        <button class="btn btn-google" onclick="loginWithGoogle()">
+            <i class="fa-brands fa-google"></i> SIGN WITH GOOGLE
+        </button>
+        <p style="font-size:0.5rem; text-align:center; margin-top:20px; opacity:0.5;">v1.4.0 Experimental Edition</p>
+    </div>
+
+    <div id="main-ui" style="display:none; flex-direction:column; height:100%;">
+        
+        <div class="content-area active" id="t0">
+            <div class="status-card">
+                <div class="status-header">
+                    <div>
+                        <span id="s-dot" class="dot offline"></span>
+                        <span id="s-text" style="font-family:'Press Start 2P'; font-size:0.5rem; margin-left:10px;">CHECKING...</span>
+                    </div>
+                    <div class="more-info-btn" onclick="toggleInfo()"><i class="fa-solid fa-ellipsis"></i></div>
+                </div>
+                <div id="info-drop" class="info-dropdown">
+                    <p id="info-players">Players: --</p>
+                    <p id="info-version">Version: --</p>
+                    <p id="info-motd">MOTD: Mystery Time Server</p>
+                </div>
+            </div>
+
+            <button class="btn" style="border-style:dashed; border-color:var(--accent);" onclick="copyIP()">
+                <i class="fa-solid fa-copy"></i> MysteryTime.aternos.me
+            </button>
+            
+            <div style="margin-top:20px;">
+                <p style="font-size:0.6rem; color:var(--p); margin-bottom:10px;">FAST CONTACT:</p>
+                <button class="btn" onclick="openSupport('REPORT')" style="border-color:#ff4444; background:rgba(255,68,68,0.05);">
+                    <i class="fa-solid fa-bug"></i> SEND REPORT
+                </button>
+                <button class="btn" onclick="openSupport('QUESTION')" style="border-color:var(--accent); background:rgba(0,242,255,0.05);">
+                    <i class="fa-solid fa-circle-question"></i> ASK QUESTION
+                </button>
+            </div>
+        </div>
+
+        <div class="content-area" id="t1">
+            <div id="news-feed"></div>
+        </div>
+
+        <div class="content-area" id="t2">
+            <div class="cat-title">Browser Games</div>
+            <button class="btn" onclick="location.href='https://voxiom.io/'">Voxiom.io</button>
+            <button class="btn" onclick="location.href='https://krunker.io/'">Krunker.io</button>
+            <button class="btn" onclick="location.href='https://poki.com/ru/g/subway-surfers'">Subway Surfers</button>
+            <button class="btn" onclick="location.href='https://shellshock.io/'">Shell Shockers</button>
+
+            <div class="cat-title">PC / Downloadable</div>
+            <button class="btn" onclick="location.href='https://www.mediafire.com/file/h3024nacqdfhl9b/sborka_1.21.4.mrpack/file'">Minecraft Modpack</button>
+            <button class="btn" onclick="location.href='https://github.com/Diegiwg/PrismLauncher-Cracked'">Prism Launcher</button>
+            
+            <div class="cat-title">Minigames</div>
+            <button class="btn" onclick="location.href='https://slither.io/'">Slither.io</button>
+        </div>
+
+        <div class="content-area" id="t3">
+            <div class="news-card" style="border-left: 4px solid var(--p);">
+                <p class="news-author">Smashh</p>
+                <p style="font-size:0.6rem; opacity:0.8;">Owner / Fullstack Developer</p>
+                <a href="https://t.me/xssmash" class="btn" style="padding:10px; font-size:0.5rem; margin-top:15px;">TG: @xssmash</a>
+            </div>
+            <div class="news-card" style="border-left: 4px solid var(--accent);">
+                <p class="news-author">Oscolo4ek</p>
+                <p style="font-size:0.6rem; opacity:0.8;">Head Admin / Media Streamer</p>
+                <a href="https://t.me/wowoleg1" class="btn" style="padding:10px; font-size:0.5rem; margin-top:15px;">TG: @wowoleg1</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<button id="add-news-btn" onclick="openModal('news-modal')">+</button>
+
+<div id="news-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="font-family:'Press Start 2P'; font-size:0.6rem; color:var(--p); margin-bottom:20px;">CREATE NEWS</h3>
+        <textarea id="n-text" placeholder="Текст новости..."></textarea>
+        <div style="font-size:0.6rem; margin-bottom:10px;">ATTACH IMAGE:</div>
+        <input type="file" id="n-img" accept="image/*">
+        <button class="btn" id="n-post-btn" onclick="postNews()">PUBLISH</button>
+        <button class="btn" onclick="closeModals()" style="border:none; opacity:0.5;">CANCEL</button>
+    </div>
+</div>
+
+<div id="support-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 id="supp-title" style="font-family:'Press Start 2P'; font-size:0.6rem; color:var(--accent); margin-bottom:20px;">SUPPORT</h3>
+        <textarea id="supp-text" placeholder="Опишите детали..."></textarea>
+        <button class="btn" id="supp-send-btn" onclick="sendToBot()">SEND TO ADMIN</button>
+        <button class="btn" onclick="closeModals()" style="border:none; opacity:0.5;">CLOSE</button>
+    </div>
 </div>
 
 <script>
-    const splashes=["1.21.4 Ready!", "Purple Power!", "Aternos Server!", "Smashh DEV!", "60 FPS Mesh!", "Mystery Time!"];
-    document.getElementById("splash").innerText = splashes[Math.floor(Math.random()*splashes.length)];
-
-    const canvas = document.getElementById('bg-canvas');
+    // --- BACKGROUND ENGINE ---
+    const canvas = document.getElementById('bgCanvas');
     const ctx = canvas.getContext('2d');
-    let w, h, pts = [];
-    function init() {
-        w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight;
-        pts = []; for (let i = 0; i < 40; i++) pts.push({ x: Math.random()*w, y: Math.random()*h, vx: (Math.random()-0.5)*0.6, vy: (Math.random()-0.5)*0.6 });
-    }
-    function draw() {
-        ctx.fillStyle = '#030307'; ctx.fillRect(0,0,w,h);
-        pts.forEach((p, i) => {
-            p.x += p.vx; p.y += p.vy;
-            if (p.x<0||p.x>w) p.vx*=-1; if (p.y<0||p.y>h) p.vy*=-1;
-            ctx.fillStyle = 'rgba(176,102,255,0.3)'; ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fill();
-            for(let j=i+1; j<pts.length; j++){
-                let d = Math.hypot(p.x-pts[j].x, p.y-pts[j].y);
-                if(d<150){ ctx.strokeStyle=`rgba(176,102,255,${1-d/150})`; ctx.lineWidth=0.5; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); }
-            }
-        });
-        requestAnimationFrame(draw);
-    }
-    init(); draw(); window.onresize = init;
+    let ps = [];
+    function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    init(); window.onresize = init;
 
-    const gList = [
-        { n: 'Voxiom', u: 'https://voxiom.io/', s: 15, i: '🔫', t: 'p' },
-        { n: 'Krunker', u: 'https://krunker.io/', s: 20, i: '🎯', t: 'p' },
-        { n: 'ShellShock', u: 'https://shellshock.io/', s: 12, i: '🥚', t: 'p' },
-        { n: 'Minecraft', u: 'https://classic.minecraft.net/', s: 18, i: '⛏️', t: 'p' },
-        { n: 'Flappy', u: 'https://flappybird.io/', s: 2, i: '🐦', t: 'm' },
-        { n: '2048', u: 'https://play2048.co/', s: 1, i: '🔢', t: 'm' },
-        { n: 'Doodle', u: 'https://doodle-jump.io/', s: 5, i: '🐸', t: 'm' },
-        { n: 'Helix', u: 'https://games.poki.com/4/helix-jump/index.html', s: 8, i: '🌀', t: 'm' },
-        { n: 'Subway', u: 'https://games.poki.com/4/subway-surfers/index.html', s: 19, i: '🏃', t: 'm' }
-    ];
-
-    function setCat(c) {
-        document.getElementById('cm').classList.toggle('active', c=='m');
-        document.getElementById('cp').classList.toggle('active', c=='p');
-        const grid = document.getElementById('grid'); grid.innerHTML = '';
-        gList.filter(g => g.t == c).forEach(g => {
-            grid.innerHTML += `<div class="node" onclick="hload('${g.n}','${g.u}',${g.s},'${g.i}')"><span>${g.i}</span><p style="font-size:0.5rem;margin-top:5px;">${g.n}</p></div>`;
-        });
-    }
-    setCat('m');
-
-    async function hload(n, u, s, i) {
-        const loader = document.getElementById('loader');
-        const fill = document.getElementById('l-fill');
-        loader.style.display = 'flex';
-        document.getElementById('l-icon').innerText = i;
-        document.getElementById('l-name').innerText = `FETCHING ${n}`;
-        let cur = 0; const target = s * 1024 * 1024;
-        while (cur < target) {
-            try { await fetch(`https://picsum.photos/200?r=${Math.random()}`); cur += 500000; } catch(e) { cur += 200000; }
-            let p = (cur / target) * 100;
-            fill.style.width = Math.min(p, 100) + '%';
-            document.getElementById('l-stats').innerText = `${(cur/1024/1024).toFixed(1)} / ${s} MB`;
-            if (p >= 100) break;
-            await new Promise(r => setTimeout(r, 60));
+    class Particle {
+        constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.vx = (Math.random() - 0.5) * 0.5;
+            this.vy = (Math.random() - 0.5) * 0.5;
+            this.size = Math.random() * 2;
         }
-        setTimeout(() => { loader.style.display='none'; document.getElementById('game-overlay').style.display='flex'; document.getElementById('game-frame').src=u; }, 400);
+        update() {
+            this.x += this.vx; this.y += this.vy;
+            if(this.x < 0 || this.x > canvas.width) this.vx *= -1;
+            if(this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        draw() {
+            ctx.fillStyle = '#b066ff';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    for(let i=0; i<60; i++) ps.push(new Particle());
+
+    function loop() {
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        ctx.strokeStyle = 'rgba(176,102,255,0.08)';
+        ctx.lineWidth = 1;
+        for(let i=0; i<ps.length; i++) {
+            ps[i].update(); ps[i].draw();
+            for(let j=i+1; j<ps.length; j++) {
+                let d = Math.hypot(ps[i].x - ps[j].x, ps[i].y - ps[j].y);
+                if(d < 150) {
+                    ctx.beginPath(); ctx.moveTo(ps[i].x, ps[i].y);
+                    ctx.lineTo(ps[j].x, ps[j].y); ctx.stroke();
+                }
+            }
+        }
+        requestAnimationFrame(loop);
+    }
+    loop();
+
+    // --- UI LOGIC ---
+    let currentSupportType = "REPORT";
+
+    function toggleMenu() { document.getElementById('side-menu').classList.toggle('open'); }
+    function tab(n) {
+        document.querySelectorAll('.content-area').forEach(c => c.classList.remove('active'));
+        document.getElementById('t'+n).classList.add('active');
+        toggleMenu();
+        if(n === 1) window.loadNewsUI();
     }
 
-    function tab(i){
-        document.querySelectorAll(".nav-tab,.content").forEach(e=>e.classList.remove("active"))
-        document.querySelectorAll(".nav-tab")[i].classList.add("active")
-        document.getElementById("t"+i).classList.add("active")
-    }
-    function toggleStaff() { const l = document.getElementById('staff-list'); l.style.display = l.style.display === 'block' ? 'none' : 'block'; }
-    function closeGame() { document.getElementById('game-overlay').style.display='none'; document.getElementById('game-frame').src=''; }
-    function copyIP(){ navigator.clipboard.writeText("MysteryTimeServer.aternos.me:44380"); alert("IP скопирован!") }
+    function toggleInfo() { document.getElementById('info-drop').classList.toggle('open'); }
 
-    // --- ТВОЯ ОБНОВЛЕННАЯ ФУНКЦИЯ ---
-    async function check() {
-        const t = document.getElementById('st-text');
+    // --- SERVER STATUS (MCSTATUS API) ---
+    window.checkServerStatus = async () => {
+        const dot = document.getElementById('s-dot');
+        const txt = document.getElementById('s-text');
         try {
-            const r = await fetch(
-                `https://api.mcsrvstat.us/2/MysteryTimeServer.aternos.me:44380?nocache=${Date.now()}`
-            );
-            const d = await r.json();
-            if (d.online) {
-                const online = d.players?.online ?? 0;
-                const max = d.players?.max ?? 0;
-                t.innerText = `ONLINE (${online}/${max})`;
-                t.style.color = "#00ffaa";
+            const res = await fetch('https://api.mcstatus.io/v2/status/java/MysteryTime.aternos.me:44380');
+            const data = await res.json();
+            if(data.online) {
+                dot.className = "dot online";
+                txt.innerText = "ONLINE";
+                document.getElementById('info-players').innerText = `Players: ${data.players.online} / ${data.players.max}`;
+                document.getElementById('info-version').innerText = `Version: ${data.version.name_clean}`;
             } else {
-                t.innerText = "OFFLINE";
-                t.style.color = "#ff4444";
+                dot.className = "dot offline";
+                txt.innerText = "OFFLINE";
             }
-        } catch(e) {
-            t.innerText = "ERROR";
-            t.style.color = "#ffaa00";
+        } catch(e) { txt.innerText = "ERROR"; }
+    };
+
+    // --- NEWS RENDERING ---
+    window.loadNewsUI = async () => {
+        const feed = document.getElementById('news-feed');
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        feed.innerHTML = "<p style='text-align:center; opacity:0.4; font-size:0.5rem;'>LOADING FEED...</p>";
+        const data = await window.dbGetNews();
+        feed.innerHTML = data.map(n => `
+            <div class="news-card">
+                ${isAdmin ? `<i class="fa-solid fa-trash del-news" onclick="dbDeleteNews('${n.id}')"></i>` : ''}
+                <div class="news-author">@${n.author || 'system'}</div>
+                <div style="font-size:0.8rem; line-height:1.4;">${n.text}</div>
+                ${n.image ? `<img src="${n.image}" class="news-img">` : ''}
+            </div>
+        `).join('') || "<p style='text-align:center; opacity:0.3;'>No broadcasts yet.</p>";
+    };
+
+    async function postNews() {
+        const text = document.getElementById('n-text').value.trim();
+        const file = document.getElementById('n-img').files[0];
+        const btn = document.getElementById('n-post-btn');
+        if(!text) return;
+        btn.disabled = true; btn.innerText = "PUBLISHING...";
+        let b64 = null;
+        if(file) {
+            b64 = await new Promise(r => { const f=new FileReader(); f.onload=e=>r(e.target.result); f.readAsDataURL(file); });
         }
+        await window.dbSaveNews(text, b64);
+        location.reload();
     }
 
-    function manualRefresh() {
-        gsap.to("#refresh-icon", { rotation: "+=360", duration: 0.8, ease: "power2.inOut" });
-        check();
+    // --- SUPPORT LOGIC ---
+    function openSupport(type) {
+        currentSupportType = type;
+        document.getElementById('supp-title').innerText = type === 'REPORT' ? 'NEW REPORT' : 'ASK QUESTION';
+        document.getElementById('supp-title').style.color = type === 'REPORT' ? '#ff4444' : '#00f2ff';
+        openModal('support-modal');
     }
 
-    check();
-    setInterval(check, 20000);
+    async function sendToBot() {
+        const text = document.getElementById('supp-text').value.trim();
+        if(!text) return;
+        const btn = document.getElementById('supp-send-btn');
+        btn.disabled = true; btn.innerText = "SENDING...";
+
+        const token = "8709058432:AAEIqd4-owgpFyAdDOnqrG_mgsv5mJxaCJs";
+        const cid = "6226164273";
+        const msg = `💠 [${currentSupportType}]\n👤 User: ${localStorage.getItem('nick')}\n💬 Text: ${text}`;
+
+        try {
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: cid, text: msg })
+            });
+            alert("Отправлено! Админ скоро ответит.");
+            closeModals();
+        } catch(e) { alert("Ошибка ТГ!"); }
+        btn.disabled = false; btn.innerText = "SEND TO ADMIN";
+    }
+
+    // --- AVATAR UPLOAD ---
+    async function handleAvUpload(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const b64 = event.target.result;
+            await window.updateAvatar(b64);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // --- HELPERS ---
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
+    function copyIP() { navigator.clipboard.writeText("MysteryTimeServer.aternos.me:44380"); alert("IP СКОПИРОВАН!"); }
+    function logout() { localStorage.clear(); location.reload(); }
 </script>
+
 </body>
 </html>
