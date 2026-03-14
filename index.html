@@ -428,7 +428,7 @@
             </div>
 
             <button class="btn" style="border-style:dashed; border-color:var(--accent);" onclick="copyIP()">
-                <i class="fa-solid fa-copy"></i> MysteryTimeServer.aternos.me
+                <i class="fa-solid fa-copy"></i> Mystery-Time.aternos.me
             </button>
             
             <div style="margin-top:20px;">
@@ -468,7 +468,7 @@
                 <a href="https://t.me/xssmash" class="btn" style="padding:10px; font-size:0.5rem; margin-top:15px;">TG: @xssmash</a>
             </div>
             <div class="news-card" style="border-left: 4px solid var(--accent);">
-                <p class="news-author">Oscolo4ek</p>
+                <p class="news-author">Oscolo4ec</p>
                 <p style="font-size:0.6rem; opacity:0.8;">Head Admin / Media Streamer</p>
                 <a href="https://t.me/wowoleg1" class="btn" style="padding:10px; font-size:0.5rem; margin-top:15px;">TG: @wowoleg1</a>
             </div>
@@ -565,7 +565,7 @@
         const dot = document.getElementById('s-dot');
         const txt = document.getElementById('s-text');
         try {
-            const res = await fetch('https://api.mcstatus.io/v2/status/java/MysteryTime.aternos.me:44380');
+            const res = await fetch('https://api.mcstatus.io/v2/status/java/Mystery-Time.aternos.me:31647');
             const data = await res.json();
             if(data.online) {
                 dot.className = "dot online";
@@ -592,7 +592,7 @@
                 <div style="font-size:0.8rem; line-height:1.4;">${n.text}</div>
                 ${n.image ? `<img src="${n.image}" class="news-img">` : ''}
             </div>
-        `).join('') || "<p style='text-align:center; opacity:0.3;'>No broadcasts yet.</p>";
+        `).join('') || "<p style='text-align:center; opacity:0.3;'>Пока что новостей нет ;).</p>";
     };
 
     async function postNews() {
@@ -654,7 +654,7 @@
     // --- HELPERS ---
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
-    function copyIP() { navigator.clipboard.writeText("MysteryTimeServer.aternos.me:44380"); alert("IP СКОПИРОВАН!"); }
+    function copyIP() { navigator.clipboard.writeText("Mystery-Time.aternos.me:31647"); alert("IP СКОПИРОВАН!"); }
     function logout() { localStorage.clear(); location.reload(); }
 </script>
 
